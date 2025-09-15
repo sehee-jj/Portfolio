@@ -2,6 +2,7 @@
 
 #include "RuneSystem/GS_ArcaneBoardManager.h"
 #include "RuneSystem/GS_GridLayoutDataAsset.h"
+#include "RuneSystem/GS_EnumUtils.h"
 #include "Engine/DataTable.h"
 
 UGS_ArcaneBoardManager::UGS_ArcaneBoardManager()

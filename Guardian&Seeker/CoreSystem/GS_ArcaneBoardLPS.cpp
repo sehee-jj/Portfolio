@@ -2,6 +2,7 @@
 
 #include "RuneSystem/GS_ArcaneBoardLPS.h"
 #include "RuneSystem/GS_ArcaneBoardManager.h"
+#include "RuneSystem/GS_EnumUtils.h"
 #include "UI/RuneSystem/GS_ArcaneBoardWidget.h"
 #include "RuneSystem/GS_ArcaneBoardSaveGame.h"
 #include "Character/GS_Character.h"
