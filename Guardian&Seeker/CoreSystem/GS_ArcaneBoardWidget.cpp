@@ -10,6 +10,7 @@
 #include "UI/RuneSystem/GS_RuneInventoryWidget.h"
 #include "UI/RuneSystem/GS_StatPanelWidget.h"
 #include "UI/RuneSystem/GS_DragVisualWidget.h"
+#include "UI/Common/GS_CommonTwoBtnPopup.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "UI/RuneSystem/GS_RuneTooltipWidget.h"
 #include "Kismet/GameplayStatics.h"
@@ -25,6 +26,8 @@ UGS_ArcaneBoardWidget::UGS_ArcaneBoardWidget(const FObjectInitializer& ObjectIni
 	LastClickedCell = nullptr;
 	BoardManager = nullptr;
 	ArcaneBoardLPS = nullptr;
+	PendingPresetIndex = -1;
+	PresetSaveConfirmPopup = nullptr;
 }
 
 void UGS_ArcaneBoardWidget::NativeConstruct()
@@ -74,6 +77,12 @@ void UGS_ArcaneBoardWidget::NativeDestruct()
 	{
 		RuneTooltipWidget->RemoveFromParent();
 		RuneTooltipWidget = nullptr;
+	}
+
+	if (IsValid(PresetSaveConfirmPopup))
+	{
+		PresetSaveConfirmPopup->RemoveFromParent();
+		PresetSaveConfirmPopup = nullptr;
 	}
 
 	if (GetWorld())
@@ -444,17 +453,38 @@ void UGS_ArcaneBoardWidget::OnResetButtonClicked()
 
 void UGS_ArcaneBoardWidget::OnPresetButton1Clicked()
 {
-	LoadPreset(1);
+	if (HasUnsavedChanges())
+	{
+		ShowPresetSaveConfirmPopup(1);
+	}
+	else
+	{
+		SwitchToPreset(1);
+	}
 }
 
 void UGS_ArcaneBoardWidget::OnPresetButton2Clicked()
 {
-	LoadPreset(2);
+	if (HasUnsavedChanges())
+	{
+		ShowPresetSaveConfirmPopup(2);
+	}
+	else
+	{
+		SwitchToPreset(2);
+	}
 }
 
 void UGS_ArcaneBoardWidget::OnPresetButton3Clicked()
 {
-	LoadPreset(3);
+	if (HasUnsavedChanges())
+	{
+		ShowPresetSaveConfirmPopup(3);
+	}
+	else
+	{
+		SwitchToPreset(3);
+	}
 }
 
 // 시스템 초기화
@@ -727,20 +757,70 @@ bool UGS_ArcaneBoardWidget::IsMouseOverTooltipWidget(const FVector2D& ScreenPos)
 }
 
 // 프리셋 관리
-void UGS_ArcaneBoardWidget::LoadPreset(int32 PresetIndex)
+void UGS_ArcaneBoardWidget::ShowPresetSaveConfirmPopup(int32 TargetPresetIndex)
+{
+	if (!IsValid(PresetSaveConfirmPopupClass))
+	{
+		return;
+	}
+
+	PendingPresetIndex = TargetPresetIndex;
+
+	if (IsValid(PresetSaveConfirmPopup))
+	{
+		PresetSaveConfirmPopup->RemoveFromParent();
+	}
+
+	PresetSaveConfirmPopup = CreateWidget<UGS_CommonTwoBtnPopup>(this, PresetSaveConfirmPopupClass);
+	if (PresetSaveConfirmPopup)
+	{
+		PresetSaveConfirmPopup->SetDescription(FText::FromString(TEXT("변경사항을\n저장하시겠습니까?")));
+		PresetSaveConfirmPopup->OnYesClicked.BindUObject(this, &UGS_ArcaneBoardWidget::OnPresetSaveYes);
+		PresetSaveConfirmPopup->OnNoClicked.BindUObject(this, &UGS_ArcaneBoardWidget::OnPresetSaveNo);
+
+		PresetSaveConfirmPopup->AddToViewport(10);
+	}
+}
+
+void UGS_ArcaneBoardWidget::SwitchToPreset(int32 PresetIndex)
+{
+	if (!IsValid(ArcaneBoardLPS))
+	{
+		return;
+	}
+
+	ArcaneBoardLPS->LoadBoardConfig(PresetIndex);
+	RefreshForCurrCharacter();
+	UpdatePresetButtonVisuals();
+}
+
+void UGS_ArcaneBoardWidget::OnPresetSaveYes()
 {
 	if (IsValid(ArcaneBoardLPS))
 	{
-		if (HasUnsavedChanges())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("저장하지 않은 변경사항이 있습니다. 프리셋 %d로 전환합니다."), PresetIndex);
-		}
-
-		ArcaneBoardLPS->LoadBoardConfig(PresetIndex);
-		RefreshForCurrCharacter();
+		ArcaneBoardLPS->ApplyBoardChanges();
 	}
 
-	UpdatePresetButtonVisuals();
+	SwitchToPreset(PendingPresetIndex);
+
+	if (IsValid(PresetSaveConfirmPopup))
+	{
+		PresetSaveConfirmPopup->RemoveFromParent();
+		PresetSaveConfirmPopup = nullptr;
+	}
+	PendingPresetIndex = -1;
+}
+
+void UGS_ArcaneBoardWidget::OnPresetSaveNo()
+{
+	SwitchToPreset(PendingPresetIndex);
+
+	if (IsValid(PresetSaveConfirmPopup))
+	{
+		PresetSaveConfirmPopup->RemoveFromParent();
+		PresetSaveConfirmPopup = nullptr;
+	}
+	PendingPresetIndex = -1;
 }
 
 void UGS_ArcaneBoardWidget::UpdatePresetButtonVisuals()

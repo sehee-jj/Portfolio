@@ -16,6 +16,7 @@ class UGS_DragVisualWidget;
 class UGS_RuneTooltipWidget;
 class UGS_ArcaneBoardManager;
 class UGS_ArcaneBoardLPS;
+class UGS_CommonTwoBtnPopup;
 
 /**
  * 아케인 보드 메인 위젯
@@ -92,6 +93,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ArcaneBoard")
 	TSubclassOf<UGS_RuneTooltipWidget> TooltipWidgetClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ArcaneBoard")
+	TSubclassOf<UGS_CommonTwoBtnPopup> PresetSaveConfirmPopupClass;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 	USoundBase* RunePickupSound;
 
@@ -108,17 +112,20 @@ protected:
 	USoundBase* RuneConnectionBonusSound;
 
 private:
+	// 핵심 참조
 	UPROPERTY()
 	UGS_ArcaneBoardManager* BoardManager;
 
 	UPROPERTY()
 	UGS_ArcaneBoardLPS* ArcaneBoardLPS;
 
+	// 그리드 상태
 	UPROPERTY()
 	TMap<FIntPoint, UGS_RuneGridCellWidget*> GridCells;
 
 	TArray<FIntPoint> PreviewCells;
 
+	// 선택 상태
 	uint8 SelectedRuneID;
 	bool bIsInSelectionMode;
 
@@ -134,6 +141,12 @@ private:
 
 	uint8 CurrTooltipRuneID;
 	FTimerHandle TooltipDelayTimer;
+
+	// 프리셋 저장 확인 시스템
+	int32 PendingPresetIndex;
+
+	UPROPERTY()
+	UGS_CommonTwoBtnPopup* PresetSaveConfirmPopup;
 
 	// 버튼 이벤트 핸들러
 	UFUNCTION()
@@ -173,8 +186,11 @@ private:
 	bool IsMouseOverTooltipWidget(const FVector2D& ScreenPos);
 
 	// 프리셋 관리
+	void ShowPresetSaveConfirmPopup(int32 TargetPresetIndex);
+	void SwitchToPreset(int32 PresetIndex);
+	void OnPresetSaveYes();
+	void OnPresetSaveNo();
 	void UpdatePresetButtonVisuals();
-	void LoadPreset(int32 PresetIndex);
 
 	// 유틸리티
 	FVector2D GetArcaneBoardCellSize() const;
